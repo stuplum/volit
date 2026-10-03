@@ -1,13 +1,13 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { routeWork, revalidateDecision } from '@volit/core';
 import type { Decision, Delegation, Route, RoutingSnapshot } from '@volit/core';
 import { buildEvidence, JudgeError, validateJudgement } from '@volit/judge';
 import type { JudgeProvider } from '@volit/judge';
+import { loadConfig } from './config.ts';
 import { registerDelegate } from './delegate.ts';
 import { notify } from './host.ts';
 import type { Api, Context, Event } from './host.ts';
-import { bindJudge, effectivePrewalk, extractContext, foreignRouteChange, object, parseConfig, restoreState, snapshotCandidates, transitionControl } from './state.ts';
+import { bindJudge, effectivePrewalk, extractContext, foreignRouteChange, object, restoreState, snapshotCandidates, transitionControl } from './state.ts';
 import type { Config, State } from './state.ts';
 
 export const DISCLOSURE = 'Latest request and bounded prior user/assistant text are shared with the selected judgement provider; system/tool/file/image payloads are excluded, but user text can contain secrets. Observe also discloses.';
@@ -51,7 +51,7 @@ export function createVolitExtension({ createProvider }: { createProvider: () =>
 function installVolit({ api, createProvider }: { api: Api; createProvider: () => JudgeProvider }): void {
   api.registerFlag('volit', { type: 'string', description: 'Volit mode: off, observe or auto; enablement requires --volit-accept-disclosure' });
   api.registerFlag('volit-accept-disclosure', { type: 'boolean', default: false, description: DISCLOSURE });
-  api.registerFlag('volit-config', { type: 'string', description: 'Path to explicit Volit JSON configuration (default cwd/volit.config.json)' });
+  api.registerFlag('volit-config', { type: 'string', description: 'Explicit Volit JSON configuration; otherwise use .volit/volit.config.json in the working directory, then the home directory' });
   let provider: JudgeProvider | undefined;
   const destination = () => provider ? `${provider.id} at ${provider.destination}` : 'unconfigured';
   let config: Config | undefined;
@@ -90,7 +90,7 @@ function installVolit({ api, createProvider }: { api: Api; createProvider: () =>
     provider = undefined;
     const flag = api.getFlag('volit-config');
     try {
-      const loadedConfig = parseConfig(JSON.parse(await readFile(resolve(ctx.cwd, typeof flag === 'string' ? flag : 'volit.config.json'), 'utf8')));
+      const loadedConfig = await loadConfig({ cwd: ctx.cwd, home: homedir(), ...(typeof flag === 'string' ? { path: flag } : {}) });
       const consent = state.disclosure;
       try {
         const selected = createProvider();
@@ -107,7 +107,9 @@ function installVolit({ api, createProvider }: { api: Api; createProvider: () =>
       if (state.mode !== 'off' || api.getFlag('volit') === 'auto' || api.getFlag('volit') === 'observe') notify(ctx, `Judgement provider: ${destination()}`);
     }
     catch (error) {
-      if (typeof flag === 'string' || state.mode !== 'off') notify(ctx, `Configuration unavailable: ${error instanceof Error ? error.message : 'invalid configuration'}`, 'error');
+      const failure = error instanceof Error ? error : new Error('Invalid Volit configuration');
+      if (typeof flag === 'string' || state.mode !== 'off') notify(ctx, failure.message, 'error');
+      return failure;
     }
   };
   const restore = async (_event: Event, ctx: Context) => {
@@ -115,14 +117,14 @@ function installVolit({ api, createProvider }: { api: Api; createProvider: () =>
     const revision = state.revision;
     state = restoreState(ctx.sessionManager.getBranch());
     state.revision = Math.max(state.revision, revision);
-    await load(ctx);
+    const loadError = await load(ctx);
     if (firstStart) {
       firstStart = false;
       const flag = api.getFlag('volit');
       if (flag === 'auto' || flag === 'observe') {
         try {
+          if (!config) throw loadError ?? new Error('Valid Volit configuration is required');
           state = transitionControl(state, `${flag}${api.getFlag('volit-accept-disclosure') === true ? ' --accept-disclosure' : ''}`);
-          if (!config) throw new Error('Valid Volit configuration is required');
           persist();
           notify(ctx, `${DISCLOSURE} ${STOCK_LIMITATION}`, 'warning');
         } catch (error) { state.mode = 'off'; notify(ctx, error instanceof Error ? error.message : 'Activation failed', 'error'); }
@@ -150,7 +152,10 @@ function installVolit({ api, createProvider }: { api: Api; createProvider: () =>
         return;
       }
       try {
-        if (['auto', 'observe'].includes(command.split(/\s+/)[0] ?? '') && !config) { await load(ctx); if (!config) throw new Error('Valid Volit configuration is required'); }
+        if (['auto', 'observe'].includes(command.split(/\s+/)[0] ?? '') && !config) {
+          const loadError = await load(ctx);
+          if (!config) throw loadError ?? new Error('Valid Volit configuration is required');
+        }
         const next = transitionControl(state, command);
         invalidate();
         next.revision = state.revision;

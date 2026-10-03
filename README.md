@@ -45,7 +45,7 @@ bun run pack
 
 The development workspaces use TypeScript source under `@volit/core`, `@volit/judge`, `@volit/jev` and `@volit/omp`. OMP can load the source entry directly with `omp --extension "$(pwd)/packages/omp/src/index.ts"`.
 
-Packaging compiles JavaScript and declarations, stages a self-contained package under `dist/package`, and creates `dist/stuplum-volit-0.1.0.tgz`. The checkout remains private; publication uses the verified tarball, not the workspace root. The package is MIT-licensed.
+Packaging compiles JavaScript and declarations, stages a self-contained package under `dist/package`, and creates `dist/stuplum-volit-0.2.0.tgz`. The checkout remains private; publication uses the verified tarball, not the workspace root. The package is MIT-licensed.
 
 Jcode is not implemented. Another adapter can reuse the core without importing OMP.
 
@@ -82,7 +82,7 @@ Prefer a local or self-hosted Laya endpoint for code. The [third-party public en
 
 Set `VOLIT_JEV_API_KEY` in your environment, or use an existing `TYPESAFE_API_KEY`. The Volit-specific variable takes precedence and avoids configuring OMP's separate native Jev features.
 
-Create `volit.config.json` with explicit profiles, allowed targets and policy thresholds. After native plugin installation, start OMP in that project:
+Create a configuration with explicit profiles, allowed targets and policy thresholds in the project's `.volit` directory or your home `.volit` directory, as described below. After native plugin installation, start OMP:
 
 ```sh
 omp
@@ -104,12 +104,12 @@ The extension starts off unless the active session branch contains previously en
 Headless operation uses the same installed plugin:
 
 ```sh
-omp --volit-config "$(pwd)/volit.config.json" \
+omp --volit-config "$(pwd)/.volit/volit.config.json" \
   --volit auto --volit-accept-disclosure \
   --print "Review the changes in this project"
 ```
 
-For project-only installation, also pass `--extension "$(pwd)/node_modules/@stuplum/volit/dist/index.js"`. Pass `--volit off` to disable routing even when resuming previously enabled state. `--volit-config` selects an explicit configuration file; otherwise the file is resolved from OMP's working directory.
+For project-only installation, also pass `--extension "$(pwd)/node_modules/@stuplum/volit/dist/index.js"`. Pass `--volit off` to disable routing even when resuming previously enabled state. The configuration flag is optional; default discovery uses the precedence below.
 
 The destination defaults to TypeSafe. A deliberate `--volit-endpoint` override supports a trusted HTTPS endpoint or a loopback HTTP fixture. Project JSON cannot redirect the bearer key through an endpoint field.
 
@@ -117,13 +117,33 @@ To remove the native installation, run `omp plugin uninstall @stuplum/volit`. Fo
 
 ## Configuration
 
-Copy the bundled [volit.example.json](volit.example.json) into your project as `volit.config.json`. For native installation, `omp plugin list --json` reports the installed package's `path`; copy the example from that directory. For project-only installation:
+Configuration lookup uses the first applicable location:
+
+1. `--volit-config <path>`. Relative paths resolve against OMP's working directory.
+2. `$(pwd)/.volit/volit.config.json`, using OMP's working directory.
+3. `$HOME/.volit/volit.config.json`, using the operating system's home directory.
+
+Configurations are not merged. Without an explicit flag, a missing project file permits the user-wide fallback. Invalid JSON, invalid configuration or a read error stops lookup and never falls back. A missing explicit file also fails without fallback. Activation errors identify the failing file or list both searched default paths when neither exists.
+
+Since 0.2.0, the former project-root default is no longer discovered. Move an existing configuration into the project's `.volit` directory, or keep selecting its old location explicitly with `--volit-config`.
+
+Copy the bundled [volit.example.json](volit.example.json) to your chosen location and review its model mappings and thresholds. For native installation, `omp plugin list --json` reports the installed package's `path`; copy the example from that directory. For project-only installation:
 
 ```sh
-cp "$(pwd)/node_modules/@stuplum/volit/volit.example.json" "$(pwd)/volit.config.json"
+mkdir -p "$(pwd)/.volit"
+cp -n "$(pwd)/node_modules/@stuplum/volit/volit.example.json" "$(pwd)/.volit/volit.config.json"
 ```
 
-From a source checkout, copy `"$(pwd)/volit.example.json"` instead. Review the file before enabling routing; do not overwrite an existing configuration.
+For a user-wide configuration from a source checkout:
+
+```sh
+mkdir -p "$HOME/.volit"
+cp -n "$(pwd)/volit.example.json" "$HOME/.volit/volit.config.json"
+```
+
+Review the file before enabling routing; these commands do not overwrite an existing configuration. A user-wide configuration lets the same OMP invocation work across projects, with a project configuration taking precedence where present.
+
+After changing a configuration that has already loaded, start a new session or restart OMP.
 
 The example maps ordinary implementation to `anthropic/claude-haiku-4-5` at low effort and investigation to `anthropic/claude-fable-5` at high effort. Both route IDs and efforts were present in the tested OMP catalogue; that does not establish account access or workload suitability. Replace the mappings with routes you have enabled and evaluated. The numeric thresholds are illustrative, not calibrated defaults; copying the file does not enable routing.
 
