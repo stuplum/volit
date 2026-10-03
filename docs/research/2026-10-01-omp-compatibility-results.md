@@ -392,7 +392,7 @@ Commands, environments, stdout/stderr, RPC frames, actual session records, loopb
 
 Stuart authorised committing and pushing the implementation before packaging, then publishing to npm, and selected MIT. The implementation was pushed to `stuplum/volit` as `2c88e55`. This section records pre-publication artefact checks, not a registry-publication claim.
 
-The release is one `volit@0.1.0` package with compiled ESM, declarations and no runtime dependencies. Its public entry points are `volit`, `volit/core`, `volit/judge`, `volit/jev` and `volit/omp`. The default entry is the Jev-backed OMP extension.
+The initial candidate was one `volit@0.1.0` package with compiled ESM, declarations and no runtime dependencies. Its public entry points were `volit`, `volit/core`, `volit/judge`, `volit/jev` and `volit/omp`. The default entry was the Jev-backed OMP extension.
 
 The first archive used npm `bundledDependencies`. Empty-cache, offline npm installation and a Node consumer succeeded, but Bun 1.4.2 tried to fetch the bundled `@volit/*` manifests from the registry and failed. This matches [Bun issue 27418](https://github.com/oven-sh/bun/issues/27418). The final package contains the compiled modules directly, with syntax-aware relative-import rewriting in JavaScript and declarations. It has no dependency manifests for Bun to resolve.
 
@@ -414,3 +414,11 @@ TypeScript 7.0.2 remains the checker and emitter. Its root module no longer prov
 Stock OMP treats a filesystem install target as a directory, so it cannot install a local tarball directly. The native smoke linked a directory extracted from the archive, never the source checkout. Registry installation uses Bun. OMP 18.4.8 also accepts `--local` without applying it to plugin install/uninstall; the README distinguishes user-profile installation from npm project-local installation.
 
 Primary native commands, HTTP payloads, session records and fixture sources are retained in `local://volit-packed-omp-smoke-evidence.json`; the initial Bun failure is retained separately in `local://volit-packed-omp-initial-failure-evidence.json`. The successful fixture passed 51 assertions, stopped all owned children and its server, and removed its temporary root. Node installation also used and removed an isolated temporary workspace. No real inference credentials or personal OMP settings were used. Live TypeSafe quality verification remains unrun.
+
+### Approved npm scope
+
+The registry rejected unscoped `volit` with `E403` because its name is too similar to `lit` and `split`; nothing was published. Stuart approved `@stuplum/volit`. The package name, install commands and public import examples now use that scope. Development-only `@volit/*` workspace names and the `/volit` control remain unchanged.
+
+The rebuilt `/Users/stuart.plumbley/Personal Workspace/volit/dist/stuplum-volit-0.1.0.tgz` has SHA-256 `4822f9f5c9690c20d5d6fcaf5f5eb227df32cc835fe6222bac07ac99a9685bf7`. All 100 tests and strict checking passed again. Empty-cache offline npm installation, Node execution, declarations, Bun installation and native OMP discovery/routing/uninstall passed under the scoped name. The native fixture again passed 51 assertions.
+
+Scoped pre-publication evidence is retained in `local://volit-scoped-packed-consumer-evidence.json` and `local://volit-scoped-packed-omp-smoke-evidence.json`. These checks used the exact scoped tarball and isolated temporary directories; they do not claim registry publication.

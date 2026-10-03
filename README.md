@@ -7,7 +7,7 @@ Session-aware model routing for stock OMP, with a harness-independent TypeScript
 Install the npm package into your OMP user profile:
 
 ```sh
-omp plugin install volit
+omp plugin install @stuplum/volit
 ```
 
 OMP discovers the compiled extension through the package manifest. This installation applies to your user profile, not just the current project. Installation does not accept disclosure or enable routing.
@@ -15,23 +15,23 @@ OMP discovers the compiled extension through the package manifest. This installa
 For a project-only installation instead:
 
 ```sh
-npm install --save-dev volit
-omp --extension "$(pwd)/node_modules/volit/dist/index.js"
+npm install --save-dev @stuplum/volit
+omp --extension "$(pwd)/node_modules/@stuplum/volit/dist/index.js"
 ```
 
 Do not use `omp plugin install --local` for project isolation: stock OMP 18.4.8 accepts that flag but does not apply it to installation.
 
 The integration is verified against OMP 18.4.8 with Bun 1.4.2. The portable libraries require Node.js 22 or later and have no Bun or OMP runtime dependency.
 
-The single `volit` package includes compiled ESM, TypeScript declarations, the configuration example and all internal libraries. No unpublished workspace package needs to be fetched separately.
+The single `@stuplum/volit` package includes compiled ESM, TypeScript declarations, the configuration example and all internal libraries. No unpublished workspace package needs to be fetched separately.
 
 | Import | API |
 | --- | --- |
-| `volit` | Default Jev-backed OMP extension |
-| `volit/core` | Eligibility, continuity, cost limits and decision revalidation |
-| `volit/judge` | Provider contract, evidence construction, validated results and safe errors |
-| `volit/jev` | `createJevProvider`, binding credentials and transport to the shared contract |
-| `volit/omp` | `createVolitExtension`, accepting an explicit provider factory |
+| `@stuplum/volit` | Default Jev-backed OMP extension |
+| `@stuplum/volit/core` | Eligibility, continuity, cost limits and decision revalidation |
+| `@stuplum/volit/judge` | Provider contract, evidence construction, validated results and safe errors |
+| `@stuplum/volit/jev` | `createJevProvider`, binding credentials and transport to the shared contract |
+| `@stuplum/volit/omp` | `createVolitExtension`, accepting an explicit provider factory |
 
 ## Development
 
@@ -45,13 +45,13 @@ bun run pack
 
 The development workspaces use TypeScript source under `@volit/core`, `@volit/judge`, `@volit/jev` and `@volit/omp`. OMP can load the source entry directly with `omp --extension "$(pwd)/packages/omp/src/index.ts"`.
 
-Packaging compiles JavaScript and declarations, stages a self-contained package under `dist/package`, and creates `dist/volit-0.1.0.tgz`. The checkout remains private; publication uses the verified tarball, not the workspace root. The package is MIT-licensed.
+Packaging compiles JavaScript and declarations, stages a self-contained package under `dist/package`, and creates `dist/stuplum-volit-0.1.0.tgz`. The checkout remains private; publication uses the verified tarball, not the workspace root. The package is MIT-licensed.
 
 Jcode is not implemented. Another adapter can reuse the core without importing OMP.
 
 ## Judgement backends
 
-`JudgeProvider` from `volit/judge` has a stable `id`, a human-readable `destination`, and `judge(request): Promise<Judgement>`. `JudgeRequest` contains permitted evidence, offered workload IDs/descriptions, `timeoutMs` and an optional `AbortSignal`. Provider construction must not perform judgements; adapters enforce the requested deadline and cancellation and keep credentials out of their public identity.
+`JudgeProvider` from `@stuplum/volit/judge` has a stable `id`, a human-readable `destination`, and `judge(request): Promise<Judgement>`. `JudgeRequest` contains permitted evidence, offered workload IDs/descriptions, `timeoutMs` and an optional `AbortSignal`. Provider construction must not perform judgements; adapters enforce the requested deadline and cancellation and keep credentials out of their public identity.
 
 Results identify the provider, actual returned model and question version. They contain a selected profile and a complete probability distribution over the offered profiles plus `insufficient_evidence`. Values must be finite and between zero and one, total one within `0.000001`, and select a most-probable outcome. Shared validation rejects incomplete distributions and mismatched provider identities.
 
@@ -60,8 +60,8 @@ Vendor `confidence` is optional diagnostic metadata with `{value, semantics}`; r
 An extension selects its provider explicitly in trusted startup code:
 
 ```typescript
-import { createVolitExtension } from 'volit/omp';
-import { createJevProvider } from 'volit/jev';
+import { createVolitExtension } from '@stuplum/volit/omp';
+import { createJevProvider } from '@stuplum/volit/jev';
 
 export default createVolitExtension({
   createProvider: () => createJevProvider({
@@ -72,7 +72,7 @@ export default createVolitExtension({
 
 The factory runs when session configuration is loaded, after OMP flags are available. Another adapter implements the same contract and replaces that factory; routing policy and OMP integration stay unchanged. `destination` identifies the actual recipient or local executor and must not contain secrets. Project JSON cannot load provider code or select a credential destination. `--volit-endpoint` belongs to the default Jev entry point, not the generic extension.
 
-External tooling can import `volit/judge`, `volit/jev` and `volit/core` without loading the OMP adapter. Comparative datasets, quality/latency/cost benchmarks, provider rankings and threshold tuning are outside this repository. Volit runs an explicitly selected provider and policy; it has no automatic provider selection or fallback.
+External tooling can import `@stuplum/volit/judge`, `@stuplum/volit/jev` and `@stuplum/volit/core` without loading the OMP adapter. Comparative datasets, quality/latency/cost benchmarks, provider rankings and threshold tuning are outside this repository. Volit runs an explicitly selected provider and policy; it has no automatic provider selection or fallback.
 
 Laya is a prospective adapter, not a bundled implementation. Its native [`laya-serve` API](https://github.com/NandhaKishorM/laya/blob/main/docs/http-api.md) uses `/v1/systemone`, but a correct adapter must handle optional authentication, checkpoint metadata, rounded distributions, different confidence semantics and explicit truncation/option-collision metadata. Merely changing `--volit-endpoint` is not verified Laya support.
 
@@ -109,18 +109,18 @@ omp --volit-config "$(pwd)/volit.config.json" \
   --print "Review the changes in this project"
 ```
 
-For project-only installation, also pass `--extension "$(pwd)/node_modules/volit/dist/index.js"`. Pass `--volit off` to disable routing even when resuming previously enabled state. `--volit-config` selects an explicit configuration file; otherwise the file is resolved from OMP's working directory.
+For project-only installation, also pass `--extension "$(pwd)/node_modules/@stuplum/volit/dist/index.js"`. Pass `--volit off` to disable routing even when resuming previously enabled state. `--volit-config` selects an explicit configuration file; otherwise the file is resolved from OMP's working directory.
 
 The destination defaults to TypeSafe. A deliberate `--volit-endpoint` override supports a trusted HTTPS endpoint or a loopback HTTP fixture. Project JSON cannot redirect the bearer key through an endpoint field.
 
-To remove the native installation, run `omp plugin uninstall volit`. For project-only installation, stop passing the extension argument and run `npm uninstall volit`. Remove any manual extension registration you added yourself. Existing session metadata can remain; it does nothing without the extension loaded.
+To remove the native installation, run `omp plugin uninstall @stuplum/volit`. For project-only installation, stop passing the extension argument and run `npm uninstall @stuplum/volit`. Remove any manual extension registration you added yourself. Existing session metadata can remain; it does nothing without the extension loaded.
 
 ## Configuration
 
 Copy the bundled [volit.example.json](volit.example.json) into your project as `volit.config.json`. For native installation, `omp plugin list --json` reports the installed package's `path`; copy the example from that directory. For project-only installation:
 
 ```sh
-cp "$(pwd)/node_modules/volit/volit.example.json" "$(pwd)/volit.config.json"
+cp "$(pwd)/node_modules/@stuplum/volit/volit.example.json" "$(pwd)/volit.config.json"
 ```
 
 From a source checkout, copy `"$(pwd)/volit.example.json"` instead. Review the file before enabling routing; do not overwrite an existing configuration.

@@ -1,5 +1,5 @@
 {
-  "name": "volit",
+  "name": "@stuplum/volit",
   "version": "0.1.0",
   "description": "Session-aware model routing for stock OMP, with a harness-independent TypeScript policy and an explicit judgement-provider contract.",
   "repository": {
