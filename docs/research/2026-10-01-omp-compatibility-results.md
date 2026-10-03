@@ -387,3 +387,30 @@ Generic RPC status identified `local-fixture` and its actual destination rather 
 An extra CLI experiment deliberately forced `a` while saved route ownership recorded `b`. The existing foreign-route guard suspended automatic application even after CLI disclosure acceptance. Its fixture then returned a profile absent from the offered choices and was rejected. This unsuccessful extra run is retained, not counted as successful routing; the explicit RPC control subsequently restored ownership and routed to `b`.
 
 Commands, environments, stdout/stderr, RPC frames, actual session records, loopback payloads and fixture sources are retained in `local://volit-provider-smoke-evidence.json`. Owned processes and servers were stopped and temporary workspaces removed. No personal credentials, paid calls, model downloads, global settings changes, commits or pushes were involved. Live TypeSafe verification remains credential-dependent and unrun; provider comparison and threshold tuning remain out of scope.
+
+## Npm artefact verification (2026-10-03)
+
+Stuart authorised committing and pushing the implementation before packaging, then publishing to npm, and selected MIT. The implementation was pushed to `stuplum/volit` as `2c88e55`. This section records pre-publication artefact checks, not a registry-publication claim.
+
+The release is one `volit@0.1.0` package with compiled ESM, declarations and no runtime dependencies. Its public entry points are `volit`, `volit/core`, `volit/judge`, `volit/jev` and `volit/omp`. The default entry is the Jev-backed OMP extension.
+
+The first archive used npm `bundledDependencies`. Empty-cache, offline npm installation and a Node consumer succeeded, but Bun 1.4.2 tried to fetch the bundled `@volit/*` manifests from the registry and failed. This matches [Bun issue 27418](https://github.com/oven-sh/bun/issues/27418). The final package contains the compiled modules directly, with syntax-aware relative-import rewriting in JavaScript and declarations. It has no dependency manifests for Bun to resolve.
+
+TypeScript 7.0.2 remains the checker and emitter. Its root module no longer provides the legacy compiler API; `typescript-ast` pins the TypeScript 6.0.3 compiler API for the build-only rewrite. Scripts select the TypeScript 7 executable explicitly so the alias cannot change the checker through a shared `tsc` shim. Neither compiler is included in the release.
+
+`bun run check` passed all 100 tests and strict typechecking. `bun run pack` produced an archive whose SHA-256 is `6d82abd88f96a99b3cab9c85b07248beb4502932f80f0d5ca005a9c91feb3e51`.
+
+| Installed artefact check | Observed result |
+| --- | --- |
+| npm installation with empty cache and `--offline --ignore-scripts` | One package installed without dependency fetches |
+| Plain Node 25.6.0 consumer | Auto switched to `deep`; observe did not apply; off made no request; malformed transport results retained the public `JudgeError` identity |
+| Strict TypeScript 7 NodeNext consumer with no ambient `@types` packages | All five public entry points and their declarations resolved; no source-workspace or Bun types required |
+| Bun 1.4.2 local tarball installation | One package installed; all compiled public entry points loaded; no registry requests |
+| Native OMP 18.4.8 installation of the extracted archive | Plugin discovered without an explicit Volit extension argument |
+| Installed plugin, off | Zero Jev requests; actual inference and persisted assistant message used `a`; stdout `RESULT:a` |
+| Installed plugin, explicit auto and disclosure | One Jev request; actual inference used `b`; stdout `RESULT:b`; persisted provider/model/question and consent binding matched |
+| Native uninstall | Listing and runtime path removed; subsequent inference used `a`, with no Jev request or Volit session entry |
+
+Stock OMP treats a filesystem install target as a directory, so it cannot install a local tarball directly. The native smoke linked a directory extracted from the archive, never the source checkout. Registry installation uses Bun. OMP 18.4.8 also accepts `--local` without applying it to plugin install/uninstall; the README distinguishes user-profile installation from npm project-local installation.
+
+Primary native commands, HTTP payloads, session records and fixture sources are retained in `local://volit-packed-omp-smoke-evidence.json`; the initial Bun failure is retained separately in `local://volit-packed-omp-initial-failure-evidence.json`. The successful fixture passed 51 assertions, stopped all owned children and its server, and removed its temporary root. Node installation also used and removed an isolated temporary workspace. No real inference credentials or personal OMP settings were used. Live TypeSafe quality verification remains unrun.

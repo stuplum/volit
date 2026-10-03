@@ -1,17 +1,26 @@
 {
   "name": "volit",
   "version": "0.1.0",
+  "description": "Session-aware model routing for stock OMP, with a harness-independent TypeScript policy and an explicit judgement-provider contract.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stuplum/volit.git"
+  },
+  "license": "MIT",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.2",
   "workspaces": ["packages/*"],
   "scripts": {
     "test": "bun test packages",
-    "typecheck": "tsc --noEmit",
-    "check": "bun run typecheck && bun test packages"
+    "typecheck": "bun ./node_modules/typescript/bin/tsc --noEmit",
+    "check": "bun run typecheck && bun test packages",
+    "build": "bun ./node_modules/typescript/bin/tsc -p tsconfig.build.json && bun scripts/package.ts",
+    "pack": "bun run build && npm pack ./dist/package --pack-destination ./dist"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "typescript-ast": "npm:typescript@6.0.3"
   }
 }
