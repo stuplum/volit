@@ -1,0 +1,15 @@
+{
+  "name": "@volit/omp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/extension.ts",
+    "./jev": "./src/index.ts"
+  },
+  "dependencies": {
+    "@volit/core": "workspace:*",
+    "@volit/judge": "workspace:*",
+    "@volit/jev": "workspace:*"
+  }
+}

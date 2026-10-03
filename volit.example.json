@@ -1,0 +1,42 @@
+{
+  "profiles": [
+    {
+      "id": "implementation",
+      "description": "A well-scoped implementation or small correction with clear requirements and familiar code paths.",
+      "targets": ["haiku-low"]
+    },
+    {
+      "id": "investigation",
+      "description": "A difficult fault investigation or architectural change requiring substantial reasoning across interacting components.",
+      "targets": ["fable-high"]
+    }
+  ],
+  "targets": [
+    {
+      "id": "haiku-low",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "effort": "low"
+    },
+    {
+      "id": "fable-high",
+      "provider": "anthropic",
+      "model": "claude-fable-5",
+      "effort": "high"
+    }
+  ],
+  "policy": {
+    "version": "example-not-calibrated-v1",
+    "minimumProbability": 0.85,
+    "minimumMargin": 0.25,
+    "downgradeProbability": 0.95,
+    "cooldownMs": 30000,
+    "downgradeTransitions": [
+      { "from": "investigation", "to": "implementation" }
+    ]
+  },
+  "outputReserve": 4096,
+  "evidenceMaxChars": 8000,
+  "timeoutMs": 4000,
+  "delegationTools": ["read", "grep", "glob"]
+}
